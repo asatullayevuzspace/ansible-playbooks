@@ -12,6 +12,6 @@
       apt:
         upgrade: dist
 
-    - name: Autoremove packages
+    - name: Remove unused packages
       apt:
         autoremove: yes
