@@ -1,0 +1,17 @@
+- name: Update Linux systems
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Upgrade packages
+      apt:
+        upgrade: dist
+
+    - name: Autoremove packages
+      apt:
+        autoremove: yes
