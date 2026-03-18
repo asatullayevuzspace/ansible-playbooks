@@ -1,0 +1,21 @@
+- name: Block AnyDesk execution
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Kill any running AnyDesk process
+      command: pkill anydesk
+      ignore_errors: yes
+
+    - name: Remove execute permission from AnyDesk binary
+      file:
+        path: /usr/bin/anydesk
+        mode: '0000'
+      ignore_errors: yes
+
+    - name: Remove execute permission from AnyDesk in /opt if exists
+      file:
+        path: /opt/anydesk/anydesk
+        mode: '0000'
+      ignore_errors: yes
