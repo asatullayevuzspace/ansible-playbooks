@@ -16,7 +16,7 @@
         mode: '0755'
       ignore_errors: yes
 
-    - name: Restore Telegram binary (manual install)
+    - name: Restore Telegram in /opt
       file:
         path: /opt/Telegram/Telegram
         mode: '0755'
