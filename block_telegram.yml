@@ -1,0 +1,27 @@
+- name: Block Telegram Desktop
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Kill Telegram process
+      command: pkill telegram-desktop
+      ignore_errors: yes
+
+    - name: Block Telegram binary (snap)
+      file:
+        path: /snap/bin/telegram-desktop
+        mode: '0000'
+      ignore_errors: yes
+
+    - name: Block Telegram binary (apt)
+      file:
+        path: /usr/bin/telegram-desktop
+        mode: '0000'
+      ignore_errors: yes
+
+    - name: Block Telegram in /opt if exists
+      file:
+        path: /opt/Telegram/Telegram
+        mode: '0000'
+      ignore_errors: yes
