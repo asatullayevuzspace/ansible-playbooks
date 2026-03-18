@@ -1,0 +1,17 @@
+- name: Unblock AnyDesk execution
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Restore execute permission for AnyDesk binary
+      file:
+        path: /usr/bin/anydesk
+        mode: '0755'
+      ignore_errors: yes
+
+    - name: Restore execute permission for AnyDesk in /opt if exists
+      file:
+        path: /opt/anydesk/anydesk
+        mode: '0755'
+      ignore_errors: yes
