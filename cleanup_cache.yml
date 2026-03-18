@@ -1,0 +1,25 @@
+- name: Cleanup cache on Ubuntu systems
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Remove unused packages
+      apt:
+        autoremove: yes
+        purge: yes
+
+    - name: Clean old apt cache
+      apt:
+        autoclean: yes
+
+    - name: Clean full apt cache
+      command: apt clean
+
+    - name: Clear SSSD cache
+      command: sss_cache -E
+
+    - name: Restart SSSD
+      service:
+        name: sssd
+        state: restarted
