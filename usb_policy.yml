@@ -8,7 +8,7 @@
       copy:
         dest: /etc/udev/rules.d/99-usb-restrict.rules
         content: |
-          SUBSYSTEM=="block", ENV{ID_BUS}=="usb", GROUP="usb_access", MODE="0660"
+          SUBSYSTEMS=="usb", KERNEL=="sd*", GROUP="usb_access", MODE="0660"
 
     - name: Reload udev rules
       command: udevadm control --reload
