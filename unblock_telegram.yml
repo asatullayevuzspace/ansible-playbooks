@@ -1,0 +1,23 @@
+- name: Unblock Telegram Desktop
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Restore Telegram binary (snap)
+      file:
+        path: /snap/bin/telegram-desktop
+        mode: '0755'
+      ignore_errors: yes
+
+    - name: Restore Telegram binary (apt)
+      file:
+        path: /usr/bin/telegram-desktop
+        mode: '0755'
+      ignore_errors: yes
+
+    - name: Restore Telegram binary (manual install)
+      file:
+        path: /opt/Telegram/Telegram
+        mode: '0755'
+      ignore_errors: yes
