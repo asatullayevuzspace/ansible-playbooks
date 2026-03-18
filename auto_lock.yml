@@ -1,0 +1,23 @@
+- name: Configure auto lock for users (GNOME)
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Set idle delay (5 minutes)
+      command: >
+        gsettings set org.gnome.desktop.session idle-delay 300
+      become_user: ansible
+      ignore_errors: yes
+
+    - name: Enable lock screen
+      command: >
+        gsettings set org.gnome.desktop.screensaver lock-enabled true
+      become_user: ansible
+      ignore_errors: yes
+
+    - name: Set lock delay (immediate)
+      command: >
+        gsettings set org.gnome.desktop.screensaver lock-delay 0
+      become_user: ansible
+      ignore_errors: yes
