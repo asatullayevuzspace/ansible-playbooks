@@ -1,0 +1,17 @@
+- name: Disable USB storage on Ubuntu
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Blacklist usb-storage module
+      copy:
+        dest: /etc/modprobe.d/disable-usb-storage.conf
+        content: "blacklist usb-storage"
+
+    - name: Unload usb-storage module if loaded
+      command: modprobe -r usb-storage
+      ignore_errors: yes
+
+    - name: Update initramfs
+      command: update-initramfs -u
