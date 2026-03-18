@@ -1,0 +1,17 @@
+- name: USB access control via FreeIPA group
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Allow USB only for usb_access group
+      copy:
+        dest: /etc/udev/rules.d/99-usb-restrict.rules
+        content: |
+          SUBSYSTEM=="block", ENV{ID_BUS}=="usb", GROUP="usb_access", MODE="0660"
+
+    - name: Reload udev rules
+      command: udevadm control --reload
+
+    - name: Trigger udev
+      command: udevadm trigger
