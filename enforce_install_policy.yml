@@ -1,0 +1,29 @@
+- name: Enforce install policy from FreeIPA
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Clear SSSD cache
+      command: sss_cache -E
+
+    - name: Restart SSSD
+      service:
+        name: sssd
+        state: restarted
+
+    - name: Restrict snap to program_install group
+      file:
+        path: /usr/bin/snap
+        owner: root
+        group: program_install
+        mode: '0750'
+      ignore_errors: yes
+
+    - name: Restrict flatpak to program_install group
+      file:
+        path: /usr/bin/flatpak
+        owner: root
+        group: program_install
+        mode: '0750'
+      ignore_errors: yes
