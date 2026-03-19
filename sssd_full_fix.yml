@@ -1,0 +1,125 @@
+---
+- name: SSSD FULL CHECK + FIX (Duplicate Users Issue)
+  hosts: all
+  become: yes
+
+  vars:
+    sssd_conf: /etc/sssd/sssd.conf
+
+  tasks:
+
+    # =========================
+    # 🔍 CHECK BLOCK
+    # =========================
+
+    - name: Check enumerate setting
+      shell: grep -i '^enumerate' {{ sssd_conf }} || echo "NOT SET"
+      register: enumerate_check
+      changed_when: false
+
+    - name: Show enumerate value
+      debug:
+        msg: "Enumerate: {{ enumerate_check.stdout }}"
+
+    - name: Check SSSD cache size
+      shell: du -sh /var/lib/sss/db 2>/dev/null || echo "no cache"
+      register: cache_check
+      changed_when: false
+
+    - name: Show cache size
+      debug:
+        msg: "Cache size: {{ cache_check.stdout }}"
+
+    # =========================
+    # ⚠️ CONDITION
+    # =========================
+
+    - name: Set fix_required fact
+      set_fact:
+        fix_required: "{{ 'false' not in enumerate_check.stdout }}"
+
+    - name: Show decision
+      debug:
+        msg: "Fix required: {{ fix_required }}"
+
+    # =========================
+    # 🔧 FIX BLOCK
+    # =========================
+
+    - name: Apply fix block
+      block:
+
+        - name: Ensure enumerate = false
+          lineinfile:
+            path: "{{ sssd_conf }}"
+            regexp: '^enumerate'
+            line: 'enumerate = false'
+            insertafter: '^\[domain.*\]'
+            backup: yes
+
+        - name: Stop SSSD
+          systemd:
+            name: sssd
+            state: stopped
+
+        - name: Remove SSSD cache DB
+          file:
+            path: /var/lib/sss/db
+            state: absent
+
+        - name: Recreate SSSD DB dir
+          file:
+            path: /var/lib/sss/db
+            state: directory
+            owner: root
+            group: root
+            mode: '0700'
+
+        - name: Remove SSSD memcache
+          file:
+            path: /var/lib/sss/mc
+            state: absent
+
+        - name: Start SSSD
+          systemd:
+            name: sssd
+            state: started
+            enabled: yes
+
+        - name: Clean AccountsService cache
+          file:
+            path: /var/lib/AccountsService/users
+            state: absent
+
+        - name: Recreate AccountsService dir
+          file:
+            path: /var/lib/AccountsService/users
+            state: directory
+            owner: root
+            group: root
+            mode: '0755'
+
+        - name: Restart accounts-daemon
+          systemd:
+            name: accounts-daemon
+            state: restarted
+
+        - name: Restart GDM (optional)
+          systemd:
+            name: gdm
+            state: restarted
+          ignore_errors: yes
+
+      when: fix_required
+
+    # =========================
+    # 📊 FINAL REPORT
+    # =========================
+
+    - name: Final status
+      debug:
+        msg: |
+          ===== RESULT =====
+          Enumerate before: {{ enumerate_check.stdout }}
+          Fix applied: {{ fix_required }}
+          Cache before: {{ cache_check.stdout }}
