@@ -12,13 +12,25 @@
         name: sssd
         state: restarted
 
+    # SNAP CHECK
+    - name: Check snap binary
+      stat:
+        path: /usr/bin/snap
+      register: snap_bin
+
     - name: Restrict snap to program_install group
       file:
         path: /usr/bin/snap
         owner: root
         group: program_install
         mode: '0750'
-      ignore_errors: yes
+      when: snap_bin.stat.exists
+
+    # FLATPAK CHECK
+    - name: Check flatpak binary
+      stat:
+        path: /usr/bin/flatpak
+      register: flatpak_bin
 
     - name: Restrict flatpak to program_install group
       file:
@@ -26,4 +38,4 @@
         owner: root
         group: program_install
         mode: '0750'
-      ignore_errors: yes
+      when: flatpak_bin.stat.exists
