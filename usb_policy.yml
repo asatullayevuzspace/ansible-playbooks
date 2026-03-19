@@ -1,17 +1,82 @@
-- name: USB access control via FreeIPA group
+---
+- name: USB policy + selective package update (PRO)
   hosts: all
   become: yes
 
+  vars:
+    required_packages:
+      - policykit-1
+      - udisks2
+
   tasks:
 
-    - name: Allow USB only for usb_access group
-      copy:
-        dest: /etc/udev/rules.d/99-usb-restrict.rules
-        content: |
-          SUBSYSTEMS=="usb", KERNEL=="sd*", GROUP="usb_access", MODE="0660"
+    # 📦 UPDATE CACHE
+    - name: Update apt cache
+      apt:
+        update_cache: yes
 
+    # 📦 INSTALL OR UPDATE ONLY REQUIRED PACKAGES
+    - name: Ensure required packages installed and updated
+      apt:
+        name: "{{ required_packages }}"
+        state: latest
+
+    # 🔍 CHECK FREEIPA GROUP
+    - name: Check usb_access group exists
+      command: getent group usb_access
+      register: usb_group
+      failed_when: usb_group.rc != 0
+
+    # 🔒 BLOCK USB (LOW LEVEL)
+    - name: Blacklist usb-storage module
+      copy:
+        dest: /etc/modprobe.d/usb-block.conf
+        content: |
+          blacklist usb-storage
+
+    - name: Remove usb-storage module
+      command: modprobe -r usb-storage
+      ignore_errors: yes
+
+    # 🔥 POLICYKIT RULE
+    - name: Create polkit rule for USB access
+      copy:
+        dest: /etc/polkit-1/rules.d/49-usb.rules
+        content: |
+          polkit.addRule(function(action, subject) {
+              if (action.id == "org.freedesktop.udisks2.filesystem-mount" ||
+                  action.id == "org.freedesktop.udisks2.filesystem-mount-system") {
+
+                  if (subject.isInGroup("usb_access")) {
+                      return polkit.Result.YES;
+                  }
+
+                  return polkit.Result.NO;
+              }
+          });
+
+    # 🔄 SERVICES
+    - name: Restart polkit
+      service:
+        name: polkit
+        state: restarted
+
+    - name: Restart udisks2
+      service:
+        name: udisks2
+        state: restarted
+
+    # 🔁 UDEV
     - name: Reload udev rules
       command: udevadm control --reload
 
     - name: Trigger udev
       command: udevadm trigger
+
+    # 🧪 RESULT
+    - name: Debug result
+      debug:
+        msg: |
+          ✅ Only required packages updated
+          🔒 USB blocked for all
+          🔓 USB allowed only for 'usb_access' group
