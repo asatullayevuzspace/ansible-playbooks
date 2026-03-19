@@ -36,7 +36,7 @@
 
     - name: Set fix_required fact
       set_fact:
-        fix_required: "{{ enumerate_check.stdout != 'enumerate = false' }}"
+        fix_required: "{{ 'false' not in enumerate_check.stdout }}"
 
     - name: Show decision
       debug:
