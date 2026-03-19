@@ -1,0 +1,69 @@
+---
+- name: FreeIPA client full setup (AWX PRO)
+  hosts: all
+  become: yes
+
+  vars:
+    ipa_domain: linux.local
+    ipa_realm: LINUX.LOCAL
+    ipa_server: ipa.linux.local
+
+    required_packages:
+      - freeipa-client
+      - sssd
+      - sssd-tools
+      - libnss-sss
+      - libpam-sss
+      - oddjob
+      - oddjob-mkhomedir
+      - adcli
+
+  tasks:
+
+    - name: Install required packages
+      apt:
+        name: "{{ required_packages }}"
+        state: present
+        update_cache: yes
+
+    - name: Check if already joined
+      stat:
+        path: /etc/ipa/default.conf
+      register: ipa_joined
+
+    - name: Join to FreeIPA (using AWX Credential)
+      command: >
+        ipa-client-install
+        --domain={{ ipa_domain }}
+        --realm={{ ipa_realm }}
+        --server={{ ipa_server }}
+        --principal={{ lookup('env','IPA_USER') }}
+        --password={{ lookup('env','IPA_PASSWORD') }}
+        --unattended
+      when: not ipa_joined.stat.exists
+
+    - name: Enable mkhomedir
+      lineinfile:
+        path: /etc/pam.d/common-session
+        line: "session required pam_mkhomedir.so skel=/etc/skel umask=077"
+        state: present
+
+    - name: Restart SSSD
+      service:
+        name: sssd
+        state: restarted
+
+    - name: Clear SSSD cache
+      command: sss_cache -E
+      ignore_errors: yes
+
+    - name: Test domain user
+      command: id ansible@linux.local
+      register: test_user
+      ignore_errors: yes
+
+    - name: Show result
+      debug:
+        msg: |
+          IPA joined: {{ ipa_joined.stat.exists }}
+          Domain user works: {{ test_user.rc == 0 }}
